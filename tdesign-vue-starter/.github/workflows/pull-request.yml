@@ -1,0 +1,18 @@
+name: MAIN_PULL_REQUEST
+
+on:
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  MAIN_PULL_REQUEST:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+          cache: 'npm'
+      - run: npm install
+        shell: bash
+      - run: npm run lint

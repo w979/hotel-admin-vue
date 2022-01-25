@@ -1,0 +1,213 @@
+<div class="list-common-table">
+    <t-form ref="form" :label-width="80" colon>
+        <t-row>
+            <t-col :span="10">
+                <t-row :gutter="[16, 16]">
+                    <t-col :flex="1">
+                        <t-form-item label="姓名">
+                            <t-input
+                                    style="width: 200px;"
+                                    v-model="subscribeName"
+                                    class="form-item-content"
+                                    type="search"
+                                    placeholder="请输入预定人姓名"
+                                    :style="{ minWidth: '134px' }"
+                            />
+                        </t-form-item>
+                    </t-col>
+                    <t-col :flex="5">
+                        <t-form-item label="联系电话">
+                            <t-input
+                                    style="width: 200px;"
+                                    v-model="subscribePhone"
+                                    class="form-item-content"
+                                    type="search"
+                                    placeholder="请输入预定人电话"
+                            />
+                        </t-form-item>
+                    </t-col>
+                    <t-col :flex="14">
+                        <t-form-item label="房间类型">
+                            <t-select
+                                    style="width: 200px;"
+                                    v-model="roomtypeId"
+                                    placeholder="请选择房间类型"
+                            >
+                                <t-option value="" label="所有房型"></t-option>
+                                <t-option
+                                        v-for="roomType in roomtypeList"
+                                        :value="roomType.id"
+                                        :label="roomType.roomtypeName"
+                                        :key="roomType.id"
+                                >
+                                </t-option>
+                            </t-select>
+                        </t-form-item>
+                    </t-col>
+                    <t-col :flex="20">
+                        <t-form-item label="所属酒店">
+                            <t-select
+                                    style="width: 200px;"
+                                    v-model="hotelId"
+                                    placeholder="请选择酒店"
+                            >
+                                <t-option value="" label="所有酒店"></t-option>
+                                <t-option
+                                        v-for="hotel in hotelList"
+                                        :value="hotel.id"
+                                        :label="hotel.hotelName"
+                                        :key="hotel.id"
+                                >
+                                </t-option>
+                            </t-select>
+                        </t-form-item>
+                    </t-col>
+                </t-row>
+            </t-col>
+
+            <t-col :span="2" class="operation-container">
+                <t-button theme="primary" type="submit" @click="querySubscribe" :style="{ marginLeft: '8px' }"> 查询
+                </t-button>
+                <t-button type="reset" variant="base" @click="resetForm" theme="default"> 重置</t-button>
+            </t-col>
+        </t-row>
+    </t-form>
+    <div class="table-container" style="margin-top: 40px">
+        <t-table
+                v-loading="loading"
+                :data="subscribeList"
+                :columns="columns"
+                :rowKey="rowKey"
+                :verticalAlign="verticalAlign"
+                :hover="hover"
+        >
+            <template #subscribePaytype="{row}">
+                <t-tag v-if="row.subscribePaytype === 1 " theme="primary">支付宝</t-tag>
+                <t-tag v-if="row.subscribePaytype === 2 " theme="success">微信</t-tag>
+                <t-tag v-if="row.subscribePaytype === 3 " theme="danger">现金</t-tag>
+                <t-tag v-if="row.subscribePaytype === 4 " theme="default">银联</t-tag>
+                <t-tag v-if="row.subscribePaytype === 5 " theme="warning">VIP</t-tag>
+
+            </template>
+            <template #subscribeStatus="{row}">
+                <t-tag v-if="row.subscribeStatus === 1 " theme="success" variant="light">已支付</t-tag>
+                <t-tag v-if="row.subscribeStatus === 2 " theme="warning" variant="light">已取消</t-tag>
+            </template>
+            <template #op="slotProps">
+                <t-button variant="text" theme="primary" size="small" @click="showDetail(slotProps)">详情</t-button>
+                <t-button v-if="slotProps.row.subscribeStatus === 1 " variant="text" theme="primary" size="small"
+                          @click="goCheckIn(slotProps)">去登记
+                </t-button>
+                <t-button v-if="slotProps.row.subscribeStatus === 1 " variant="text" theme="danger" size="small"
+                          @click="handleClickCancel(slotProps)">取消预约
+                </t-button>
+            </template>
+        </t-table>
+        <br>
+        <el-pagination
+                style="text-align: center"
+                background
+                @size-change="this.handleSizeChange"
+                @current-change="this.handleCurrentChange"
+                :current-page="this.pageNum"
+                :page-sizes="[10, 5]"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="this.total"
+        >
+        </el-pagination>
+        <t-dialog
+                header="确认取消当前预约？"
+                :visible.sync="confirmVisible"
+                @confirm="confirmSubscribeCancel"
+                :onCancel="onCancel"
+        >
+        </t-dialog>
+
+        <el-dialog
+                title="预订详情"
+                :visible.sync="detailDialogVisible"
+                @closed="detailDialogClose"
+                width="40%"
+                center>
+            <hr style="color: #D4D9DD;">
+            <t-form :data="subscribeDetail" label-width="85px" style="border: 1px solid #D4D9DD ;border-radius: 15px">
+                <t-row class="row-gap" :gutter="[16, 24]">
+                    <t-col :span="6" :offset="2">
+                        <t-form-item>
+                            <h4>姓名:&nbsp;</h4>
+                            &nbsp;{{ subscribeDetail.subscribeName }}
+                        </t-form-item>
+                    </t-col>
+                </t-row>
+                <t-row class="row-gap" :gutter="[16, 24]">
+                    <t-col :span="6" :offset="2">
+                        <t-form-item>
+                            <h4>联系电话:&nbsp;</h4>
+                            &nbsp;{{ subscribeDetail.subscribePhone }}
+                        </t-form-item>
+                    </t-col>
+                </t-row>
+                <t-row class="row-gap" :gutter="[16, 24]">
+                    <t-col :span="6" :offset="2">
+                        <t-form-item>
+                            <h4>入住时间:&nbsp;</h4>
+                            &nbsp;{{ subscribeDetail.subscribeIntime }}
+                        </t-form-item>
+                    </t-col>
+                </t-row>
+                <t-row class="row-gap" :gutter="[16, 24]">
+                    <t-col :span="6" :offset="2">
+                        <t-form-item>
+                            <h4>退房时间:&nbsp;</h4>
+                            &nbsp;{{ subscribeDetail.subscribeLeavetime }}
+                        </t-form-item>
+                    </t-col>
+                </t-row>
+                <t-row class="row-gap" :gutter="[16, 24]">
+                    <t-col :span="6" :offset="2">
+                        <t-form-item>
+                            <h4>住房金额:&nbsp;</h4>
+                            &nbsp;￥{{ subscribeDetail.subscribeRoomrate }}
+                        </t-form-item>
+                    </t-col>
+                </t-row>
+                <t-row class="row-gap" :gutter="[16, 24]">
+                    <t-col :span="6" :offset="2">
+                        <t-form-item>
+                            <h4>押金:&nbsp;</h4>
+                            &nbsp;￥{{ subscribeDetail.subscribeDeposit }}
+                        </t-form-item>
+                    </t-col>
+                </t-row>
+                <t-row class="row-gap" :gutter="[16, 24]">
+                    <t-col :span="6" :offset="2">
+                        <t-form-item>
+                            <h4>支付方式:&nbsp;&nbsp;</h4>
+                                <t-tag v-if="subscribeDetail.subscribePaytype === 1 " theme="primary">支付宝</t-tag>
+                                <t-tag v-if="subscribeDetail.subscribePaytype === 2 " theme="success">微信</t-tag>
+                                <t-tag v-if="subscribeDetail.subscribePaytype === 3 " theme="danger">现金</t-tag>
+                                <t-tag v-if="subscribeDetail.subscribePaytype === 4 " theme="default">银联</t-tag>
+                                <t-tag v-if="subscribeDetail.subscribePaytype === 5 " theme="warning">VIP</t-tag>
+
+                        </t-form-item>
+                    </t-col>
+                </t-row>
+                <t-row class="row-gap" :gutter="[16, 24]">
+                    <t-col :span="6" :offset="2">
+                        <t-form-item>
+                            <h4>状态:&nbsp;&nbsp;</h4>
+                                <t-tag v-if="subscribeDetail.subscribeStatus === 1 " theme="success" variant="light">已支付</t-tag>
+                                <t-tag v-if="subscribeDetail.subscribeStatus === 2 " theme="warning" variant="light">已取消</t-tag>
+                        </t-form-item>
+                    </t-col>
+                </t-row>
+            </t-form>
+            <span slot="footer" class="dialog-footer">
+
+    <t-button theme="default" @click="detailDialogClose">取 消</t-button>
+    <t-button type="primary" @click="detailDialogClose">确 定</t-button>
+  </span>
+        </el-dialog>
+    </div>
+</div>
+

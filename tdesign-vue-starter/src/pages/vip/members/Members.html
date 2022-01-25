@@ -1,0 +1,238 @@
+<div class="list-common-table">
+    <t-form ref="form" :label-width="75" colon @reset="onRest">
+        <t-row justify="center" :gutter="[16, 24]">
+            <t-col :span="10" style="height: 80px">
+                <t-row :gutter="[16, 16]" justify="space-between">
+                    <t-col :span="4">
+                        <t-form-item label="会员姓名" name="membersName">
+                            <t-input
+                                    class="form-item-content"
+                                    v-model="membersName"
+                                    type="search"
+                                    placeholder="请输入会员姓名"
+                                    :style="{ minWidth: '134px' }"
+                            />
+                        </t-form-item>
+                    </t-col>
+                    <t-col :span="4">
+                        <t-form-item label="会员手机" name="membersPhone">
+                            <t-input
+                                    v-model="membersPhone"
+                                    class="form-item-content"
+                                    type="search"
+                                    placeholder="请输入会员手机号"
+                                    :style="{ minWidth: '134px' }"
+                            />
+                        </t-form-item>
+                    </t-col>
+
+                    <t-col :span="4">
+                        <t-form-item label="身份证号" name="membersIdCard">
+                            <t-input
+                                    v-model="membersIdCard"
+                                    class="form-item-content"
+                                    type="search"
+                                    placeholder="请输入身份证号"
+                                    :style="{ minWidth: '134px' }"
+                            />
+                        </t-form-item>
+                    </t-col>
+
+                </t-row>
+                <t-divider></t-divider>
+                <t-row :gutter="[16, 16]" justify="space-between">
+                    <t-col :span="4">
+                        <t-form-item label="会员类型" name="membersTypeId">
+                            <t-select class="form-item-content" placeholder="请选择会员类型" v-model="membersTypeId">
+                                <t-option value="" label="所有类型"></t-option>
+                                <t-option
+                                        v-for="item in typeItem"
+                                        :value="item.id"
+                                        :label="item.viptypeName"
+                                        :key="item.id"
+                                ></t-option>
+                            </t-select>
+                        </t-form-item>
+                    </t-col>
+                    <t-col :span="4">
+                        <t-form-item label="会员状态" name="membersStatus">
+                            <t-select placeholder="请选择会员状态" v-model="membersStatus">
+                                <t-option value="" label="所有" key=""></t-option>
+                                <t-option value="1" label="正常" key="1"></t-option>
+                                <t-option value="2" label="冻结" key="2"></t-option>
+                            </t-select>
+                        </t-form-item>
+                    </t-col>
+                    <t-col :span="4" class="operation-container">
+                        <t-button theme="primary" type="submit"
+                                  @click="btnQuery"
+                                  :style="{ marginLeft: '100px',marginRight:'30px'}"> 查询
+                        </t-button>
+                        <t-button theme="default" variant="base" type="reset">重置</t-button>
+                    </t-col>
+                </t-row>
+            </t-col>
+        </t-row>
+    </t-form>
+    <br/>
+    <br/>
+    <br/>
+    <div class="table-container">
+        <t-table
+                :data="membersList"
+                :columns="columns"
+                :rowKey="rowKey"
+                :verticalAlign="verticalAlign"
+                :hover="hover"
+                @row-click="onRowClick"
+                v-loading="loading"
+        >
+            <template #viptypeId="{ row }">
+                <t-tag v-for="item in typeItem" v-if="row.viptypeId === item.id" theme="success" variant="light">
+                    {{ item.viptypeName }}
+                </t-tag>
+            </template>
+
+            <template #vipStatus="{ row }">
+                <t-tag v-if="row.vipStatus === '1'" theme="success" variant="light">正常</t-tag>
+                <t-tag v-if="row.vipStatus === '2'" theme="primary" variant="light">冻结</t-tag>
+            </template>
+
+            <template #op="slotProps">
+                <a v-if="slotProps.row.vipStatus==='1'" style="margin: 6px">
+                    <t-button variant="outline" theme="primary" @click.stop="btnFreeze(slotProps.row.id)">冻结</t-button>
+                </a>
+                <a v-if="slotProps.row.vipStatus==='2'" class="t-button-link" style="margin: 6px">
+                    <t-button variant="outline" theme="primary" @click.stop="btnActivate(slotProps.row.id)">激活
+                    </t-button>
+                </a>
+                <a style="margin: 6px" class="t-button-link">
+                    <t-button variant="outline" theme="warning" @click.stop="btnUpdate(slotProps.row.id)">修改</t-button>
+                </a>
+            </template>
+        </t-table>
+    </div>
+    <!-- 分页开始 -->
+    <div align="center">
+        <el-pagination
+                style="text-align: center"
+                background
+                @size-change="this.handleSizeChange"
+                @current-change="this.handleCurrentChange"
+                :current-page="this.pagenum"
+                :page-sizes="[5,10]"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="this.total"
+        >
+        </el-pagination>
+    </div>
+    <!-- 分页结束 -->
+
+    <!--详细页抽屉-->
+    <div>
+        <t-drawer
+                :visible.sync="visible"
+                :placement="placement"
+                :onClose="clearForm"
+                size="medium"
+                :onConfirm="() => visible = false"
+                header="会员详细信息"
+                :footer="false"
+        >
+            <div>
+                <t-list :split="true">
+                    <t-list :split="true">
+                        <t-list-item>会员编号：{{ detailMembers.vipNo }}</t-list-item>
+                        <t-list-item v-if="detailMembers.vipStatus === '1'">会员状态：正常</t-list-item>
+                        <t-list-item v-if="detailMembers.vipStatus === '2'">会员状态：冻结</t-list-item>
+                        <t-list-item>会员名：{{ detailMembers.username }}</t-list-item>
+                        <t-list-item v-if="detailMembers.useronlineSex==='1'">性别：男</t-list-item>
+                        <t-list-item v-if="detailMembers.useronlineSex==='0'">性别：女</t-list-item>
+                        <t-list-item>会员电话：{{ detailMembers.useronlinePhone }}</t-list-item>
+                        <t-list-item>身份证号：{{ detailMembers.useronlineIdcard }}</t-list-item>
+                        <t-list-item>会员等级：{{ detailMembers.viptypeName }}</t-list-item>
+                        <t-list-item>办理时间：{{ detailMembers.vipStarttime }}</t-list-item>
+                        <t-list-item>到期时间：{{ detailMembers.vipEndtime }}</t-list-item>
+                        <t-list-item>会员备注：{{ detailMembers.vipRemark }}</t-list-item>
+                    </t-list>
+                </t-list>
+            </div>
+        </t-drawer>
+    </div>
+    <!--详细页抽屉-->
+    <!-- 修改对话框开始 -->
+    <t-dialog
+            header="会员信息修改"
+            :visible.sync="UpdateMembersDialogVisible"
+            :footer="false"
+            :onClose="clearForm"
+            width="45%"
+    >
+        <div>
+            <t-form
+                    :data="detailMembers"
+                    @submit="onUpdate"
+                    :rules="rules"
+            >
+                <t-form-item label="会员等级" name='vipNo'>
+                    <t-input v-model="detailMembers.vipNo" readonly></t-input>
+                </t-form-item>
+                <t-form-item label="会员状态" name='vipStatus'>
+                    <t-input v-if="detailMembers.vipStatus==='1'" value="正常" readonly></t-input>
+                    <t-input v-if="detailMembers.vipStatus==='2'" value="冻结" readonly></t-input>
+                    <t-input v-if="detailMembers.vipStatus==='3'" value="过期" readonly></t-input>
+                </t-form-item>
+                <t-form-item label="会员等级:" name="viptypeName">
+                    <t-input v-model="detailMembers.viptypeName" readonly></t-input>
+                </t-form-item>
+                <t-form-item label="会员名:" name="username">
+                    <t-input v-model="detailMembers.username"></t-input>
+                </t-form-item>
+                <t-form-item label="会员性别:" name="useronlineSex">
+                    <t-radio-group v-model="detailMembers.useronlineSex">
+                        <t-radio value="1">男</t-radio>
+                        <t-radio value="0">女</t-radio>
+                    </t-radio-group>
+                </t-form-item>
+                <t-form-item label="会员电话:" name="useronlinePhone">
+                    <t-input v-model="detailMembers.useronlinePhone"></t-input>
+                </t-form-item>
+                <t-form-item label="会员密码:" name="password">
+                    <t-input type="password" v-model="detailMembers.password"></t-input>
+                </t-form-item>
+                <t-form-item label="身份证号:" name="useronlineIdcard">
+                    <t-input v-model="detailMembers.useronlineIdcard"></t-input>
+                </t-form-item>
+                <t-form-item label="办理时间:" name="vipStarttime">
+                    <t-date-picker
+                            mode="date"
+                            format="YYYY-MM-DD HH:mm:ss"
+                            v-model="detailMembers.vipStarttime"
+                            enableTimePicker
+                            disabled
+                    />
+                </t-form-item>
+                <t-form-item label="到期时间:" name="vipEndtime">
+                    <t-date-picker
+                            mode="date"
+                            format="YYYY-MM-DD HH:mm:ss"
+                            v-model="detailMembers.vipEndtime"
+                            enableTimePicker
+                            onblur="OnBlur"
+                    />
+                </t-form-item>
+                <t-form-item label="会员备注:" name="vipRemark">
+                    <t-input type="textarea" v-model="detailMembers.vipRemark"></t-input>
+                </t-form-item>
+                <t-form-item style="padding-top: 8px">
+                    <t-button theme="primary" type="submit" style="margin-right: 10px">提交</t-button>
+                    <t-button @click="clearForm" style="margin-right: 10px">取消</t-button>
+                </t-form-item>
+            </t-form>
+        </div>
+    </t-dialog>
+    <!-- 修改对话框结束  -->
+
+
+</div>
+
